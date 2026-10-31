@@ -1,19 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:notes_app/note.dart';
+import 'package:notes_app/providers/notes_provider.dart';
 
-class NewNote extends StatefulWidget {
-  const NewNote({super.key, required this.onSave, this.note});
+class NewNote extends ConsumerStatefulWidget {
+  const NewNote({super.key, this.note});
 
-  final void Function(Note note) onSave;
   final Note? note;
 
   @override
-  State<NewNote> createState() {
+  ConsumerState<NewNote> createState() {
     return _NewNoteState();
   }
 }
 
-class _NewNoteState extends State<NewNote> {
+class _NewNoteState extends ConsumerState<NewNote> {
   late final TextEditingController _titleController;
   late final TextEditingController _textController;
 
@@ -24,7 +25,7 @@ class _NewNoteState extends State<NewNote> {
     _textController = TextEditingController(text: widget.note?.text);
   }
 
-  void _saveNote() {
+  void _saveNote() async {
     if (_textController.text.trim().isEmpty ||
         _titleController.text.trim().isEmpty) {
       showDialog(
@@ -45,9 +46,22 @@ class _NewNoteState extends State<NewNote> {
       return;
     }
 
-    widget.onSave(
-      Note(title: _titleController.text, text: _textController.text),
-    );
+    final notifier = ref.read(notesProvider.notifier);
+
+    if (widget.note == null) {
+      await notifier.addNote(
+        Note(title: _titleController.text, text: _textController.text),
+      );
+    } else {
+      await notifier.updateNote(
+        Note(
+          id: widget.note!.id,
+          title: _titleController.text,
+          text: _textController.text,
+        ),
+      );
+    }
+    if (!mounted) return;
     Navigator.pop(context);
   }
 
